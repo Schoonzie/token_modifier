@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * Implements hook_token_info().
+ */
+function token_modifier_token_info() {
+  $info = array();
+
+  $modifiers = token_modifier_get_modifiers();
+
+  $info['types']['token-modifier'] = array(
+    'name' => t('Token modifier'),
+    'description' => t('Modify the output of any existing token.'),
+  );
+
+  foreach ($modifiers as $token => $modifier) {
+    $info['tokens']['token-modifier'][$token] = array(
+      'name' => $modifier['name'],
+      'description' => $modifier['description'],
+      'dynamic' => TRUE,
+    );
+  }
+
+  return $info;
+}
+
+/**
+ * Implements hook_tokens().
+ *
+ * Provides a new token that will URL encode any other token.
+ */
+function token_modifier_tokens($type, $tokens, array $data = array(), array $options = array()) {
+
+  $return = array();
+
+  // If the type is not one of ours, return early.
+  if ($type != 'token-modifier') {
+    return $return;
+  }
+
+  // Replace individual tokens that have an exact replacement.
+  foreach ($tokens as $name => $original) {
+
+    $parts = explode(':', $name);
+
+
+    $modifier = array_shift($parts);
+    $token = implode(':', $parts);
+
+    if ($function = ctools_plugin_load_function('token_modifier', 'token_modifier', $modifier, 'callback')) {
+      $return[$original] = call_user_func($function, $token, $data, $options);
+    }
+
+  }
+
+  return $return;
+}
+
+/**
+ * Implements hook_ctools_plugin_type().
+ */
+function token_modifier_ctools_plugin_type() {
+  $plugins = array(
+    'token_modifier' => array(
+      'load themes' => FALSE,
+      'use hooks' => TRUE,
+    ),
+  );
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function token_modifier_ctools_plugin_directory($owner, $type) {
+  if ($owner == 'token_modifier') {
+    switch ($type) {
+      case 'token_modifier':
+        return 'plugins/token_modifier';
+    }
+  }
+}
+
+/**
+ * Gets a list of all available token modifiers.
+ */
+function token_modifier_get_modifiers($id = false) {
+
+  ctools_include('plugins');
+  $modifiers = ctools_get_plugins('token_modifier', 'token_modifier', $id);
+
+  if ($id && isset($sections[$id])) {
+    return $modifiers[$id];
+  }
+
+  return $modifiers;
+}
