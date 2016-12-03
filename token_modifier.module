@@ -38,6 +38,8 @@ function token_modifier_tokens($type, $tokens, array $data = array(), array $opt
     return $return;
   }
 
+  ctools_include('plugins');
+
   // Replace individual tokens that have an exact replacement.
   foreach ($tokens as $name => $original) {
 
